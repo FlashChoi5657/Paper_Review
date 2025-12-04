@@ -1,7 +1,7 @@
 ConvNeXtV2
 
 
-**Representation Learning은 AI 이전에도 존재했던 개념으로 PCA, 푸리에 transform, k-means clustering, SVM 등이 해당된다. 딥러닝 관점에서 feature의 quality를 결정하는 요소는 AI 아키텍쳐, 학습방법, 데이터이다.**
+- **Representation Learning은 AI 이전에도 존재했던 개념으로 PCA, 푸리에 transform, k-means clustering, SVM 등이 해당된다. 딥러닝 관점에서 feature의 quality를 결정하는 요소는 AI 아키텍쳐, 학습방법, 데이터이다.**
 - convolution은 수동 feature 엔지니어링에 의존하기보다는 다양한 시각적 인식 task에 대한 일반적인 feature 학습 방법을 사용할 수 있도록 함으로써 컴퓨터 비전 연구에 상당한 영향을 미쳤다. 최근에는 자연어 처리를 위해 개발된 transformer 학습 방법을 사용할 수 있도록 모델과 데이터셋 크기에 대한 강력한 확장 가능성으로 인해 주목받았다. 최근에는 ConvNeXt 아키텍처가 기존 ConvNet을 현대화 했고 순수 convolutional model도 확장 가능한 아키텍처가 될 수 있음을 증명했다. 
 - Visual representation learning은 pretext 목적함수를 사용한 self-supervised 학습으로 이동하고 있다.
 **downstream(진짜 과제)를 바로 풀 수 없다면 데이터에서 만들 수 있는 surrogate task를 설계한다. 예를 들어 original image에서 랜덤하게 0, 90, 180, 270도 회전시킨 이미지를 생성하고 4 classes 모델을 학습한다. colorization이라면 컬러이미지를 grayscale로 바꾸고 흑백이미지를 모델을 이용해 컬러 이미지로 SSL 방식으로 예측하도록 학습한다.**
