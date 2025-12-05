@@ -19,3 +19,8 @@ MAE를 설계할 때 마스킹된 입력을 sparse patch set으로 처리하고 
 - Encoder design: 인코더로 ConvNeXt 적용. ViT와 다르게 2차원 구조를 유지해야하는 CNN 계열 모델에서는 masking 영역에서 정보가 leak될 수 있다. 저자의 관찰은 마스킹된 이미지가 2D sparse 픽셀 배열로 표현될 수 있다는 것. 채워야 할 공간으로 취급하는 것이 아니라 애초에 데이터가 없는 sparse data로 처리하기 위해서 sparse conv 적용.
 - Decoder design: plain(단일) ConvNeXt block 이용.
 - Global Response Normalization: feature collapse 이슈 해결
+- **Fully Convolutional Masked AutoEncoder 제안. ConvNeXt-Base 모델을 인코더로 사용. sparse convolution의 역할은 성능에 직접적인 영향. Global Response Normalization(GRN)은 inter-channel feature competition을 촉진해서 각 채널이 서로 다른 정보를 담도록 유도한다.**
+- feature cosine distance 분석: 거리가 높을 수록 feature가 더 다양하다. 인코더 내부에서 feature 추출. feature collapse가 발생할 확률이 높은 layer 선택.
+- GRN은 다른 정규화 레이어인 Local Response Normalization, BN(Batch Normalization), LN(Layer Normalization)에 비해 더 높은 성능을 보였다. LRN은 인근 채널만 대조하므로 global context가 부족하다. Gamma와 beta로 최적화 가능하다. LayerScale이 불필요하다. 
+- 뉴런 간 경쟁을 강화하는 또 다른 방식(GRN의 inspiration): 동적 feature gating 적용. GRN을 squeeze-and-excite(SE)방식과 CBAM(Convolutional Block Attention Module) 두 클래식 gating 과 비교했다. SE는 채널 gating에 중점을 두고 CBAM은 공간 gating에 중점을 둔다. 성능은 비슷하지만 GRN은 MLP와 같은 추가 parameter layer가 필요하지 않아 효율적이다.
+- **Dynamic feature Gating: 어떤 feature를 강조하고 어떤 feature를 억제할지 결정, SE는 channel 단위로 어떤 채널이 중요할 지 학습, CBAM은 channel+spatial 모두 학습, GRN은 channel간 경쟁유도**
