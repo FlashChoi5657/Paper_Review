@@ -4,7 +4,7 @@ Segment Any Motion in Videos
 - **DINO(=self-Distillation with No Labels): Vision Transformer를 라벨 없이 학습시키는데 teacher-student 구조로 같은 이미지의 다른 augmentation을 보고 일관된 representation을 학습한다. DINO로 학습된 ViT의 특징은 명시적인 supervision 없이도 semantic 정보를 담고 있다. 예로 attention map을 시각화 하면 object의 경계나 의미적으로 유사한 부분들이 자연스럽게 클러스트링 된다. 이미지 자체 구조에서 학습신호를 만든다. 예를 들어, 같은 이미지를 두 가지 다른 방식의 증강을 하면 global view와 local view가 생기는데 모델은 이 둘이 같은 이미지에서 왔으니 비슷한 representation을 학습하라고 시킨다. teacher network는 global view를 보고 student network는 local view를 본다. student는 teacher의 output을 따라가도록 학습하고 teacher는 student의 Exponential moving average로 업데이트 된다. 결과적으로 고양이 귀의 일부분만 봐도 고양이 전체와 관련있다는 것을 학습할 수 있다.**
 - Point tracking은 deformation과 occulusion에 강인한 장기적 pixel motion 정보를 포착(exploit)한다. 여기에 의미론적 context를 추가하기 위해 DINO feature를 추가한다. 긴 2D track 셋이 주어지면 모델은 움직이는 물체에 해당하는 track을 식별한다. 이러한 sparse point들을 prompt로 주고 dense pixel-level mask로 확장한다.
 - **정리하면, 뭐가 움직이는 물체인지 판단하고 SAM2는 그 판단 결과를 정밀한 segmentation mask로 만들어준다.**
-- motion 단서와 semantiv 정보를 균형있게 조절하기 위해 두 가지 모듈을 제안한다.
+- motion 단서와 semantic 정보를 균형있게 조절하기 위해 두 가지 모듈을 제안한다.
 - **시공간적(Spatio-Temporal) 추적 어텐션은 주어진 입력 track의 long-term 특성을 고려하여 서로 다른 궤적간의 관계를 파악하는 spatial attention과 하나의 궤적이 시간에 따라 어떻게 변하는지 파악하는 temporal attention을 통합한다.**
 - **Motion-Semantic Decoupled Embedding은 모션 패턴의 우선순위를 정하고 보조경로에서 semantic feature를 처리하는 특수 attention 메커니즘**
 - 합성데이터와 실제 데이터를 포함한 광범위한 데이터셋으로 모델을 학습했다. DINO feature의 self-supervised 특성은 강력한 일반화 성능을 보여준다.
