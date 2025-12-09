@@ -1,5 +1,6 @@
 Segment Any Motion in Videos
 
+### Introduction
 - 움직이는 물체의 Segmentation이 어려운 이유는 복잡한 형태, motion blur, 배경에 의한 왜곡이다. 그래서 DINO-based 의미론적 feature와 SAM2의 pixel-level 정밀한 mask를 이용한다.
 - **DINO(=self-Distillation with No Labels): Vision Transformer를 라벨 없이 학습시키는데 teacher-student 구조로 같은 이미지의 다른 augmentation을 보고 일관된 representation을 학습한다. DINO로 학습된 ViT의 특징은 명시적인 supervision 없이도 semantic 정보를 담고 있다. 예로 attention map을 시각화 하면 object의 경계나 의미적으로 유사한 부분들이 자연스럽게 클러스트링 된다. 이미지 자체 구조에서 학습신호를 만든다. 예를 들어, 같은 이미지를 두 가지 다른 방식의 증강을 하면 global view와 local view가 생기는데 모델은 이 둘이 같은 이미지에서 왔으니 비슷한 representation을 학습하라고 시킨다. teacher network는 global view를 보고 student network는 local view를 본다. student는 teacher의 output을 따라가도록 학습하고 teacher는 student의 Exponential moving average로 업데이트 된다. 결과적으로 고양이 귀의 일부분만 봐도 고양이 전체와 관련있다는 것을 학습할 수 있다.**
 - Point tracking은 deformation과 occulusion에 강인한 장기적 pixel motion 정보를 포착(exploit)한다. 여기에 의미론적 context를 추가하기 위해 DINO feature를 추가한다. 긴 2D track 셋이 주어지면 모델은 움직이는 물체에 해당하는 track을 식별한다. 이러한 sparse point들을 prompt로 주고 dense pixel-level mask로 확장한다.
@@ -13,3 +14,10 @@ Segment Any Motion in Videos
 - 다른 방법들은 motion cue와 외형 정보를 함께 사용하는데, 두 개를 별개의 단계에서 순차적으로 처리한다. 이 방법은 두 정보를 보완적으로 사용하는 효과를 제한한다. 
 - 위 단점들의 보완을 위해 motion(point tracking)과 semantic(DINO feature)를 high level에서 통합한다.
 - motion label은 trajectory가 움직이는 물체에 속하는지 아닌지를 나타내는 이진분류 맵이다. 여기서는 기존처럼 affinity matrix와 spectral clustering을 쓰는 대신 motion-semantic decoupled 임베딩 방법을 제안한다. motion 정보와 semantic 정보를 따로 임베딩했다가 결합한다.
+
+### RELATED WORK
+- Flow-based Moving Object Segmentation: 이 방식은 통계적 추론이나 반복적 최적화 방식의 모션 추정 모델이었다. 최근에는 CNN encoder나 transformer를 이용해 motion 단서를 얻어 분할하는 딥러닝 방식이 사용됐다. optical-flow는 다른 장면에서 움직임이 있는 개별 object를 구분하고 변화를 감지해야 하는데 그동안은 밝기 변화, 원근감에 취약했고 짧은 장면에서 제한된 성능을 냈다.
+- Trajectory-based Moving Object Segmentation: 이 방법은 두 개의 프레임 또는 여러 프레임을 사용하는 방법으로 나뉜다. 두 프레임을 사용할 때는 CNN을 이용해 에너지 최소화로 모션을 추정하고, 여러 프레임을 이용할 때는 affinity metrics에 기반한 spectral clustering을 적용한다. affinity metrices
+- **affinity matrices**: 데이터 포인트들 간의 유사도를 행렬로 표현. n개의 점이 있다면 n x n 행렬이 되고 (i,j) 원소는 i와 j가 얼마나 유사한지 나타낸다. 값이 클수록 유사하다. Spectral clustering은 이 유사구조를 자동으로 찾아주는 기법이다. geometric model을 이용한다면 여러 점들의 움직임이 특정 기하학적 변환을 따르는지 최적화 하는 것이다. RANSAC 같은 방법을 이용하면 같은 geometric model을 따르므로 같은 물체라고 그룹화할 수 있다.**
+- motion model은 최근 많은 발전이 있는데, trifocal tensor를 분석하는 기법은 세 개의 이미지 매칭을 더 잘해낸다. 그러나 카메라가 일직선일 때 성능이 감소한다. 다양한 motion 단서를 통합하는 기법은 point 궤적과 optical flow를 결합해 두 개의 affinity matrices가 공동으로 규제하는 multi-view spectral clustering을 사용한다. 그러나 이 기법들은 affinity matrices가 가지는 고유한 문제들을 갖는다. 예를 들어, 지역적인 유사성만 포착하여 일관성 없는 분할로 이어지거나, 움직임의 변화가 갑자기 달라지면 파악하는데 어려움을 겪고 있다.
+- Unsupervised Video Object Segmentation(VOS): 이 방식은 video 영상에서 자동으로 눈에 띄는 물체를 추적하는 것이다. 반면에 semi-supervised VOS는 첫 프레임의 ground truth 주석에 의존해 연속적인 프레임에서 물체를 분할하는 것이다. 이 연구는 MOS로 다른 VOS와 다른 관점을 갖고 있다.
