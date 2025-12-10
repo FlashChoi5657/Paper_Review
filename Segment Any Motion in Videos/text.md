@@ -21,3 +21,7 @@ Segment Any Motion in Videos
 - **affinity matrices**: 데이터 포인트들 간의 유사도를 행렬로 표현. n개의 점이 있다면 n x n 행렬이 되고 (i,j) 원소는 i와 j가 얼마나 유사한지 나타낸다. 값이 클수록 유사하다. Spectral clustering은 이 유사구조를 자동으로 찾아주는 기법이다. geometric model을 이용한다면 여러 점들의 움직임이 특정 기하학적 변환을 따르는지 최적화 하는 것이다. RANSAC 같은 방법을 이용하면 같은 geometric model을 따르므로 같은 물체라고 그룹화할 수 있다.**
 - motion model은 최근 많은 발전이 있는데, trifocal tensor를 분석하는 기법은 세 개의 이미지 매칭을 더 잘해낸다. 그러나 카메라가 일직선일 때 성능이 감소한다. 다양한 motion 단서를 통합하는 기법은 point 궤적과 optical flow를 결합해 두 개의 affinity matrices가 공동으로 규제하는 multi-view spectral clustering을 사용한다. 그러나 이 기법들은 affinity matrices가 가지는 고유한 문제들을 갖는다. 예를 들어, 지역적인 유사성만 포착하여 일관성 없는 분할로 이어지거나, 움직임의 변화가 갑자기 달라지면 파악하는데 어려움을 겪고 있다.
 - Unsupervised Video Object Segmentation(VOS): 이 방식은 video 영상에서 자동으로 눈에 띄는 물체를 추적하는 것이다. 반면에 semi-supervised VOS는 첫 프레임의 ground truth 주석에 의존해 연속적인 프레임에서 물체를 분할하는 것이다. 이 연구는 MOS로 다른 VOS와 다른 관점을 갖고 있다.
+
+### METHOD
+- 목적은 비디오가 입력되면 움직이는 물체의 pixel 단위 mask를 만드는 것. 전체 파이프라인에서 long-range track은 비디오를 이해하고 motion pattern을 포착하며 long-range prompts는 시각적 분할에서 중요한 역할을 한다.
+-**Motion Pattern Encoding**: Point trajectories 모션을 이해하는데 중요한 정보를 제공하며 MOS 기법은 2프레임과 multi-frame의 두가지로 나눌 수 있다. 2-frame은 시간 불일치가 심하고 입력 flow에 노이즈가 많을 때 성능이 저하된다. multi-frame은 노이즈에 매우 민감하고 복잡한 패턴을 처리하기 어렵다. 이러한 한계를 해결하기 위해 특수 궤적 처리 모델을 통해 처리된 long-range point track을 활용하여 궤젹 별 모션 label을 예측하는 방법을 제안한다. 제안된 신경망은 encoder-decoder 구조이며 encoder는 long-range trajectory를 처리하고, 전체 궤적을 시공간 궤적 attention에 적용한다. 각 궤적의 Motion pattern을 임베딩 하기 위해 시간과 공간 단서를 통합하며 local and global 정보를 시공간에서 포착한다. 
