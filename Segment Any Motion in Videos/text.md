@@ -24,4 +24,4 @@ Segment Any Motion in Videos
 
 ### METHOD
 - 목적은 비디오가 입력되면 움직이는 물체의 pixel 단위 mask를 만드는 것. 전체 파이프라인에서 long-range track은 비디오를 이해하고 motion pattern을 포착하며 long-range prompts는 시각적 분할에서 중요한 역할을 한다.
--**Motion Pattern Encoding**: Point trajectories 모션을 이해하는데 중요한 정보를 제공하며 MOS 기법은 2프레임과 multi-frame의 두가지로 나눌 수 있다. 2-frame은 시간 불일치가 심하고 입력 flow에 노이즈가 많을 때 성능이 저하된다. multi-frame은 노이즈에 매우 민감하고 복잡한 패턴을 처리하기 어렵다. 이러한 한계를 해결하기 위해 특수 궤적 처리 모델을 통해 처리된 long-range point track을 활용하여 궤젹 별 모션 label을 예측하는 방법을 제안한다. 제안된 신경망은 encoder-decoder 구조이며 encoder는 long-range trajectory를 처리하고, 전체 궤적을 시공간 궤적 attention에 적용한다. 각 궤적의 Motion pattern을 임베딩 하기 위해 시간과 공간 단서를 통합하며 local and global 정보를 시공간에서 포착한다. 
+- **Motion Pattern Encoding**: Point trajectories 모션을 이해하는데 중요한 정보를 제공하며 MOS 기법은 2프레임과 multi-frame의 두가지로 나눌 수 있다. 2-frame은 시간 불일치가 심하고 입력 flow에 노이즈가 많을 때 성능이 저하된다. multi-frame은 노이즈에 매우 민감하고 복잡한 패턴을 처리하기 어렵다. 이러한 한계를 해결하기 위해 특수 궤적 처리 모델을 통해 처리된 long-range point track을 활용하여 궤젹 별 모션 label을 예측하는 방법을 제안한다. 제안된 신경망은 encoder-decoder 구조이며 encoder는 long-range trajectory를 처리하고, 전체 궤적을 시공간 궤적 attention에 적용한다. 각 궤적의 Motion pattern을 임베딩 하기 위해 시간과 공간 단서를 통합하며 local and global 정보를 시공간에서 포착한다. 
