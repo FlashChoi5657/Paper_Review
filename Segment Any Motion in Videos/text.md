@@ -1,4 +1,4 @@
-Segment Any Motion in Videos
+## Segment Any Motion in Videos
 
 ### Introduction
 - 움직이는 물체의 Segmentation이 어려운 이유는 복잡한 형태, motion blur, 배경에 의한 왜곡이다. 그래서 DINO-based 의미론적 feature와 SAM2의 pixel-level 정밀한 mask를 이용한다.
@@ -37,3 +37,12 @@ Segment Any Motion in Videos
 - 이 문제를 해결하기 위해 transformer 디코더가 semantic 단서를 고려하면서도 모션 정보의 우선순위를 정할 수 있도록 **Motion-Semantic Decoupled Embedding**을 제안한다. 
 - Transformer 기반의 디코더는 모션 정보만 embedding 된 인코더에서 나온 trajectory 정보를 입력으로 받도록 디자인했다. Attention 가중치가 적용된 motion feature에 DINO feature를 concat 한 뒤 feed-forward layer로 전달한다. 디코더 layer에서는 self-attention이 motion feature에만 적용되지만, multi-head attention을 사용하여 의미론적 정보가 포함된 메모리에 attention한다. 마지막으로 sigmoid 함수를 적용하고 각 trajectory에 대한 예측 레이블을 도출한다. 
 - 예측 레이블과 track 별 GT간 weighted binary cross-entropy loss를 사용한다. 샘플링된 point 좌표가 실제 동적 마스크 내에 있는지 판단하여 각 trajectories에서 dynamic(1), static(0)으로 loss를 계산한다.
+- **3. SAM2 Iterative Prompting**: 각 trajectory를 예측하고 필터링한 후, SAM2의 point prompt로 활용하여 iterative two step을 적용한다. 첫 단계는 동일한 물체에 속하는 trajectory을 그룹화하고 각 물체의 trajectory를 메모리에 저장한다. 두번째 단계는 저장된 메모리를 다시 SAM2의 prompt로 활용하여 동적 mask를 생성한다.
+- 접근 방식의 motivation은 SAM2가 입력으로 object ID를 요구하기 때문에 필요한 단계이다. 모든 움직이는 물체에 동일한 ID를 부여한다면 분할 성능이 감소한다.
+- 첫 단계에서 visible point 수가 가장 많은 frame을 선택하고 이 frame에서 가장 dense한 위치의 point를 찾는다. 이 포인트는 SAM2의 초기 prompt역할을 하고 이후 초기 마스크를 생성한다. sparse 위치의 point는 경계나 노이즈일 가능성이 있다. 마스크 생성 후에는 경계를 확장하기 위해 dilation을 적용하고 확장된 마스크 영역 내의 모든 포인트를 제외하여 동일한 물체에 속한다고 가정한다. 다음으로 포인트의 수가 가장 많은 다음 frame으로 진행하고 다시 모든 frame에서 남아있는 포인트가 작아 처리할 수 없을 때까지 반복한다. 같은 물체에 속하는 것으로 식별된 trajectory는 각각에 고유한 객체 ID가 할당되어 메모리에 저장된다. 각 물체에 대해 확장 되기 전 point들만 저장한다.
+- 두번째 단계에서 이 메모리들을 적용하여 prompt를 정제한다. 가장 dense한 곳의 point와 이 point와 가장 먼 두 개의 point를 찾아서 prompt로 넣어준다. SAM2가 중간에 물체 추적을 잃어버리지 않도록 일정 간격으로 prompt를 생성한다. SAM2가 물체의 부분적인(partial) mask를 생성할 수 있으므로, 모든 마스크에 후처리를 수행하여 내부적으로 겹치거나 동일 마스크 경계 내에 있는 마스크를 병합한다. 
+
+- **Limitation**
+- tracking 모델에 대한 의존도가 높다. SAM2 prompt의 interval 사이에 물체가 나타났다 사라질 경우 실패가능성이 높다. 더 뚜렷한 움직임을 보이는 물체가 있는 경우 다른 물체는 간과될 수 있다. SAM2의 prompt에 대한 의존도가 높다. 대부분의 물체가 유사한 동작 상태를 공유하는 경우, 개별 물체를 효과적으로 구분하지 못한다.
+
+
