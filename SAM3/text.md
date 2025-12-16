@@ -1,0 +1,19 @@
+## SAM3
+
+### Introduction
+- **hard negative**: 진짜 처럼 보이지만 실제로는 negative sample. 예로 contrastive learning에서 고양이를 anchor로 학습할 때 easy negative는 자동차이고 hard negative는 '호랑이'나 '고양이와 비슷한 자세의 개'처럼 헷갈리기 쉬운 이미지이다. hard negative가 중요한 이유는 모델이 easy negative만 보면 피상적인 특징만 학습하지만 hard negative를 초함하면 더 세밀한 차이를 구분하는 능력을 갖추게 된다. **negative phrases**: 이미지에 실제로 존재하지 않는 개념을 지칭하는 텍스트이다. 예로 사과 이미지에 orange라는 프롬프트를 줄 때를 의미한다. 
+- 지난 SAM 시리즈는 입력데이터에 나타나는 모든 개념의 인스턴스를 찾고 분할해 내는 일반적인 성능까지는 달성하지 못했다. SAM3에서는 Promptable Visual Segmentation(PVS)를 개선하고 Promptable Concept Segmentation(PCS)의 새로운 기준을 제시하였다. PCS는 텍스트 또는 image exemplar를 입력으로 받고 concept과 일치하는 단일 오브젝트나 비디오 프레임에서 등장하는 객체의 인스턴스나 분할 마스크를 예측한다. 명확한 텍스트 인식을 위해 텍스트는 빨간 사과나 줄무늬 고양이 처럼 간단한 명사구로 제한하였다. SAM3는 추론을 위한 긴 참조표현을 목적으로 설계되지 않았지만 Multimodal LLM과 결합하여 더 복잡한 언어 프롬프트를 다룰 수 있다. SAM3는 이전 버전들과 마찬가지로, 유저들은 모델을 의도한 출력으로 유도하는 정제된 프롬프트를 추가하여 모호성을 해결할 수 있다.
+- SAM3는 비전 인코더를 공유하는 detector와 tracker로 구성된다. 
+- Detector는 DETR을 베이스로 하고 text, geometry, image exemplars를 입력으로 받아 동작한다. 추가적인 조건을 받아 무엇을 찾을지 가이드를 받을 수 있다. 임의의 자연어 표현(open-vocabulary)으로 물체를 인식하는 것을 해결하기 위해 분리된 presence head를 두어 존재와 위치로 나눠 처리하고 이것은 negative phrases를 학습할 때 효과적이었다. 
+- Tracker는 SAM2의 transformer encoder-decoder 구조를 계승하여 video segmentation과 대화형 정제(사용자가 추가 입력)를 지원한다. detection과 tracking을 나눔으로서 task 충돌을 피할 수 있고 detector는 identity(개별 객체)에 상관없이 동작하고 tracker는 비디오에서 객체를 분리하는 목적을 갖는다.
+- 방대하고 다양한 학습 데이터셋의 주석을 추가하기 위해 human-in-the-loop 데이터 엔진을 구축했다. 기존과는 세가지 혁신 방안이 있다. 1) media curation: 동일한 웹사이트에서 더 다양한 미디어의 curation을 하였다. 2) label curation: 명사구와 부정문을 생성하는 AI annotator로 MLLM과 개념들간의 체계를 활용하여 레이블의 다양성과 난이도를 크게 올렸다. 3) label verification: MLLM을 fine-tuning하여 인간에 가까운 정확도를 덜성하는 효과적인 AI verfiers로 만들어 주석 처리량을 두 배로 올렸다.
+- 데이터 엔진은 노이즈가 많은 미디어-구문-마스크 pseudo-label부터 시작하여 사람과 AI Verifiers를 모두 사용하여 마스크 데이터의 품질과 완전성을 검사하고 필터링하고 까다로운 오류 사례도 식별한다. 사람은 이러한 에러를 수동으로 수정한다. 이를 통해 4M의 고유 구문과 52M개의 마스크로 구성된 고품질 학습 데이터와 38M의 구문과 1.4B개의 마스크로 구성된 합성 데이터셋에 주석을 달았다. 
+- 또한 PCS에 대한 Segment Anything with Concepts(SA-Co) 벤치마크를 생성했다.
+- 실험 결과로 SAM3는 LVIS에서 제로샷 마스크 AP 성능 48.8을 달성했다. LVIS는 COCO와 비교하면 더 세분화된 물체와 구체적인 도구가 포함된 벤치마크 데이터셋이다. 특징으로 long-tail distribution을 갖는데 일부 클래스는 샘플이 많고 많은 클래스는 샘플이 적다. 이는 현실 세계의 분포를 반영한다.
+- Ablation에서는 backbone 선택, 새로운 presence head, hard negatives 추가가 모두 성능향상에 기여함을 검증했다.
+
+### Promptable Concept Segmentation (PCS)
+- PCS를 이미지나 30초 이하의 짧은 동영상에서 짧은 문구나 이미지 예시에 의해 구체화 된 모든 인스턴스를 탐지하고 분할하고 추적하는 것으로 정의했다. 텍스트는 단순한 명사구로 한정한다. 텍스트는 동영상이라면 전체에 적용된다. 
+- 모든 프롬프트는 카테고리 정의에서 일관성을 유지해야 하며, 그렇지 않으면 모델의 동작이 정의되지 않는다. 잘못된 예시로 fish라고 지정한 뒤에 물고기 꼬리만 지정하면 안된다. 텍스트를 다른 방식으로 변경해야 한다. exemplar가 유용한 경우는 모델이 일부 인스턴스를 놓치거나 개념이 rare한 경우이다.
+- Vocabulary는 시각적 장면에서 근거로 삼을 수 있는 명사구가 포함되어 task가 본질적으로 모호해진다. 다의어, 주관적 설명, 모호하거나 맥락에 따라 달라지는 문구, 경계 모호성, 물체를 가리키는 occulusion 및 blur와 같은 요소로 인해 여러 해석이 있을 수 있다. 비슷한 이슈가 LVIS와 같은 데이터셋에서 나타나는데 신중한 Vocabulary선택과 모든 관심 클래스에 대한 정의를 명확히 설정하여 완화할 수 있다. 세 명의 전문가로부터 테스트 주석을 수집하고 다양한 유효 해석을 허용하여 평가 프로토콜을 조정하고 주석의 모호성을 최소화하기 위해 데이터 파이프라인과 가이드라인을 설계하고 모델에 모호성 모듈을 추가하여 모호성 문제를 해결했다.
+
