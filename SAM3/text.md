@@ -25,12 +25,9 @@
 - Presence Token: 각 제안 query가 이미지 내 오브젝트가 무엇이고 어디있는지 동시에 파악하는 것은 어려울 수 있다. 구성요소 인식을 위해서는 이미지 내 맥락적 단서가 중요하다. 하지만 제안 query가 전체 맥락을 이해하도록 강제하는 것은 국소 오브젝트의 본질적인 특성과 충돌하기 때문에 역효과가 날 수 있다. 따라서 인식과 위치를 분리하는데 학습된 전역 presence token을 도입한다. 이 토큰은 명사구 형태의 타겟 개념이 이미지/프레임 내에 존재하는지 예측을 전적으로 맡는다. 각 제안 query $q_i$는 위치 문제 $p$만 해결하면 된다. 정리하면 각 제안 query의 최종 점수는 존재점수(명사구가 이미지에 존재하는가?)와 자체 점수(명사구가 존재한다고 가정할 때 찾은 것이 맞는지?)의 곱이다.
 - **Image Exemplars and Interactivity**: SAM3는 bbox와 관련 binary label(positive or negative)의 pair로 주어진 참조이미지를 지원하며 단독 또는 텍스트 프롬프트와 함께 사용된다. 그 다음 모델은 프롬프트와 일치하는 모든 인스턴스를 탐지한다. 예를 들어, positive bbox에 개가 있다면 모델은 이미지 내 모든 개를 탐지한다. 이것은 visual 프롬프트가 하나의 오브젝트 위치를 찾는 SAM1, 2와 다른 PVS task이다. 각 참조 이미지는 exemplar encoder에서 위치/레이블 임베딩과 ROI-pooled visual feature(이미지 내 ROI를 잘라 내 고정 크기 feature로 생성)를 사용해 인코딩 되고 작은 transformer에 의해 concat 및 처리된다. 결과 프롬프트는 텍스트 프롬프트와 concat 후 프롬프트 토큰이 된다. 참조이미지는 현재 탐지에 대한 에러를 기반으로 상호작용하여 결과를 개선한다.
 - **Tracker and Video Architecture**: 비디오와 프롬프트 $P$가 주어지면 detector와 tracker는 비디오 내에서 프롬프트에 해당하는 물체를 탐지하고 쫓는다. 각 프레임에서 detector가 새로운 오브젝트 $O_t$를 찾고 tracker가 t-1의 프레임에서 시공간 마스크인 masklet $M_t-1$을  현재 t의 프레임 내 새로운 위치의 $\hat{M}_t$로 전파한다. 전파된 masklet $\hat{M}_t$ 이 현재 프레임에서 출현한 새로운 오브젝트 마스크와 연관될 수 있도록 매칭 함수를 이용한다.
-
-$$
-\hat{M}_t = \mathrm{propagate}(M_{t-1}), \quad
-O_t = \mathrm{detect}(I_t, P), \quad
-M_t = \mathrm{match\_and\_update}(\hat{M}_t, O_t).
-$$
+$\hat{M}_t = \mathrm{propagate}(M_{t-1}),\quad
+O_t = \mathrm{detect}(I_t, P),\quad
+M_t = \mathrm{match\_and\_update}(\hat{M}_t, O_t).$
 - **Tracking an Object with SAM2 Style Propagation**: masklet은 첫 프레임에서 탐지된 모든 물체에 대해 초기화 된다. 그리고 순차적인 각 프레임에서 SAM2 VOS task와 유사하게 tracker 모듈은 단일 프레임 전파 단계를 통해 현재 추적 중인 물체는 이전 $M_t-1$ 위치를 기반으로 매 프레임마다 새로운 masklet 위치 $\hat{M}_t$를 예측한다. Tracker는 같은 이미지/프레임 인코더를 디텍터와 공유한다. Detector 학습 뒤에는 PE는 얼리고 SAM2 처럼 tracker를 학습하며 프롬프트 인코더, 마스크 디코더, 메모리 인코더, 물체의 외형을 이전 frame의 feature와 조건부 frame(물체가 처음 나타났던 frame 또는 유저 프롬프트)을 사용해 인코딩한 메모리 뱅크를 포함한다. 
 - 메모리 인코더는 현재 프레임의 visual feature내 서로 참조하는 self-attention과 메모리 뱅크의 spatial memory feature(위치 정보 포함)로부터 현재 프레임이 과거 프레임을 참조하는 cross-attention을 갖는 transformer이다. Self-Attention만 있으면 현재 프레임만 보고 판단해서 연속성을 알 수 없고 Cross-attention이 있으면 이전 위치의 물체가 어디로 갔는지 추적이 가능해진다. 
 - 추론 중에는 물체가 확실히 존재하는 프레임만 메모리 뱅크에 보존한다. 마스크 디코더는 인코더의 hidden state와 출력 토근 간의 양방향 transformer이다. 모호성을 처리하기 위해 각 프레임에서 추적 중인 모든 물체의 신뢰도와 세 개의 출력 마스크를 예측하고 현재 프레임에서 가장 높은 confidence 출력을 예측 마스크로 선택한다. 
