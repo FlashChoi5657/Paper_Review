@@ -29,10 +29,10 @@
 - Self-supervised image retrieval: 연구의 사전학습용 데이터셋은 curated source(상세 정제된 데이터셋)의 이미지들과 가까운 이미지들을 가공되지 않은 데이터 소스에서 검색하여 구축했다. 이를 위해, ImageNet-22K로 사전학습된 ViT-H/16 신경망으로 이미지 임베딩을 연산하고 이미지 간의 cosine-유사도로 거리를 구한다. 그 다음 선별되지 않은 데이터는 k-means 군집화를 시도한다. 검색을 위한 query 데이터셋이 충분히 커지면 각 query 이미지에 대해 N개(보통 4개)의 nearest neighbor를 검색한다. 작은 경우에는 각 query 이미지와 관련된 집합에서 M개의 이미지를 샘플링한다. 육안으로 검사했을 때 4보다 더 큰 N도 좋아보였지만, 중복과 같은 더 많은 충돌을 만들었다. N=4는 그런 맥락에서 정했다.
 - Implementation Details: 연구 파이프라인의 중복제거와 검색 단계는 Faiss 라이브러리에 의존하며 검색과 최근접 임베딩 batch  연산을 효율적으로 수행한다. 특히, product quantization(벡터를 압축해서 메모리/속도 효율을 높이는 기법) 코드를 사용한 inverted file indices(검색 속도를 높이는 인덱싱 방식)를 활용하여 GPU 가속화를 적극적으로 활용했고 전체 처리과정은 8개의 V100이 장착된 20개 노드의 컴퓨팅 클러스터에 분산되어 수행되며, 이틀이 걸렸다.
 
-- ### Discriminative Self-supervised Pre-training
-SwAV를 중심으로 DINO와 iBOT 손실함수들의 조합을 적용해 판별형 자기지도학습으로 feature를 학습시킨다. Regularizer를 추가하여 feature와 짧은 고해상도의 학습 phase를 확장한다. 
-**SwAV**(Swapping Assignments between Views): Negative pair없이 View 사이의 클러스터 할당 일치가 목표이다. 고정된 라벨 없이, 학습 중에 feature를 prototype에 할당하고 View A의 feature는 View B의 클러스터 할당을 예측한다. clustering 붕괴 방지를 위해 Sinkhorn-Knopp(Batch 단위 제약 알고리즘)를 사용한다.
-**iBOT**(Image BERT Pre-Training with Online Tokenizer): ViT 기반 masked image modeling에 self-distillation을 결합하여 패치 단위의 표현을 학습한다. 이미지를 patch 토큰화 하고 일부를 임의로 마스킹한다. studnet가 마스킹 된 patch의 토큰 분포를 예측하고 teacher(EMA)가 제공한 soft label에 맞춰 학습한다. 
+### Discriminative Self-supervised Pre-training
+- SwAV를 중심으로 DINO와 iBOT 손실함수들의 조합을 적용해 판별형 자기지도학습으로 feature를 학습시킨다. Regularizer를 추가하여 feature와 짧은 고해상도의 학습 phase를 확장한다. 
+- **SwAV**(Swapping Assignments between Views): Negative pair없이 View 사이의 클러스터 할당 일치가 목표이다. 고정된 라벨 없이, 학습 중에 feature를 prototype에 할당하고 View A의 feature는 View B의 클러스터 할당을 예측한다. clustering 붕괴 방지를 위해 Sinkhorn-Knopp(Batch 단위 제약 알고리즘)를 사용한다.
+- **iBOT**(Image BERT Pre-Training with Online Tokenizer): ViT 기반 masked image modeling에 self-distillation을 결합하여 패치 단위의 표현을 학습한다. 이미지를 patch 토큰화 하고 일부를 임의로 마스킹한다. studnet가 마스킹 된 patch의 토큰 분포를 예측하고 teacher(EMA)가 제공한 soft label에 맞춰 학습한다. 
 - Image-level objective: student-teacher 네트워크에서 추출된 feature들 간의 cross-entropy loss를 고려한다. 두 feature는 모두 ViT의 클래스 토큰에서 추출되는데, 같은 이미지의 다른 결과를 포함한다. student class 토큰은 "prototype scores"라 부르는 벡터 스코어를 출력하는 MLP모델로 구성된 DINO head에 통과시킨다. 그리고 출력은 softmax($p_s$)까지 통과시킨다. 유사한 관점에서 teacher 클래스 토큰은 teacher DINO head에 통과시켜 prototype score를 얻고 softmax를 적용한 뒤 teacher 모델의 출력 분포 편향을 막기 위해 moving average로 보정(centering)을 추가한다. 정리하면 student의 출력분포$p_s$가 teacher가 의도적으로 설계한 target 분포 $p_t$를 잘 따르고 있는지 측정하는 손실함수로 cross entropy를 선택했다.
 - patch-level objective: Student에 입력하는 patch는 임의로 마스킹하지만 teacher 경우에는 하지 않는다. 각 마스킹된 patch에서 두 네으워크의 patch feature 사이의 cross-entropy loss를 추가한다. 
 - Untying head weights between both objectives: ViT backbone은 공유하고 backbone에서 얻은 token 출력에 대해 DINO objective와 iBOT objective 각각에 대응하는 서로 다른 MLP projection head를 적용한 뒤, 각각의 출력으로 DINO loss와 iBOT loss를 계산했다. 
